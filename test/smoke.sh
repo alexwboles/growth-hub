@@ -18,20 +18,22 @@ check "app.js syntax valid"          "node --check js/app.js"
 check "index.html loads data.js"     "grep -q 'js/data.js' index.html"
 check "index.html loads app.js"      "grep -q 'js/app.js' index.html"
 check "README documents bundle"      "grep -q 'Growth Kit' README.md"
+check "no menucraft-ai references"   "! grep -rq 'menucraft' index.html js README.md"
 
 node -e '
 var h = require("./js/data.js");
 var assert = require("assert");
-assert.strictEqual(h.PRODUCTS.length, 3, "3 products");
+assert.strictEqual(h.PRODUCTS.length, 9, "9 products");
 var slugs = h.PRODUCTS.map(function(p){return p.slug;}).sort();
-assert.deepStrictEqual(slugs, ["leadqualify-ai","menucraft-ai","winback-ai"], "slugs");
+assert.deepStrictEqual(slugs, ["adcopy-ai","leadqualify-ai","loyaltyloop-ai","pricingpilot-ai","referralpilot-ai","reviewpilot-ai","seocheck-ai","socialspark-ai","winback-ai"], "slugs");
 h.PRODUCTS.forEach(function(p){
   assert.ok(/^https:\/\/github\.com\/alexwboles\/[a-z-]+$/.test(p.repo), "repo link well-formed: "+p.slug);
   assert.ok(Number.isInteger(p.price) && p.price > 0, "price valid: "+p.slug);
   assert.strictEqual(p.features.length, 3, "3 features: "+p.slug);
 });
-assert.strictEqual(h.totalSeparate(), 82, "29+29+24=82");
-assert.strictEqual(h.bundleSavings(), 23, "82-59=23 savings");
+assert.strictEqual(h.totalSeparate(), 216, "216 separate");
+assert.strictEqual(h.BUNDLE.price, 149, "149 bundle");
+assert.strictEqual(h.bundleSavings(), 67, "216-149=67 savings");
 console.log("data assertions OK");
 ' && { PASS=$((PASS+1)); echo "PASS: data.js catalogue assertions"; } \
   || { FAIL=$((FAIL+1)); echo "FAIL: data.js catalogue assertions"; }
