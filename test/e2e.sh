@@ -83,6 +83,51 @@ h.PRODUCTS.forEach(function(p){
   if(p.price!==expect[p.slug])process.exit(1);
 });'
 
+flow "quotePlan: all nine picks => bundle wins, savings 67" '
+var h=require("./js/data.js");
+var q=h.quotePlan(["seocheck-ai","socialspark-ai","leadqualify-ai","adcopy-ai","pricingpilot-ai","reviewpilot-ai","loyaltyloop-ai","referralpilot-ai","winback-ai"]);
+if(q.count!==9)process.exit(1);
+if(q.separate!==216)process.exit(1);
+if(q.bundleApplies!==true)process.exit(1);
+if(q.effective!==149)process.exit(1);
+if(q.savings!==67)process.exit(1);'
+
+flow "quotePlan: two cheap picks => separate wins, no bundle" '
+var h=require("./js/data.js");
+var q=h.quotePlan(["seocheck-ai","adcopy-ai"]);
+if(q.count!==2)process.exit(1);
+if(q.separate!==38)process.exit(1);
+if(q.bundleApplies!==false)process.exit(1);
+if(q.effective!==38||q.savings!==0)process.exit(1);'
+
+flow "quotePlan: dedupes, ignores unknown slugs, empty verdict" '
+var h=require("./js/data.js");
+var q=h.quotePlan(["seocheck-ai","seocheck-ai","nope"]);
+if(q.count!==1||q.separate!==19)process.exit(1);
+var e=h.quotePlan([]);
+if(e.count!==0||!/at least one/.test(e.verdict))process.exit(1);'
+
+flow "recommendFor: 3 goals map to 2+3+4 products" '
+var h=require("./js/data.js");
+var f=h.recommendFor("found");
+if(f.goal.key!=="found"||f.products.length!==2)process.exit(1);
+var w=h.recommendFor("win");
+if(w.products.length!==3)process.exit(1);
+var k=h.recommendFor("keep");
+if(k.products.length!==4)process.exit(1);
+var all=f.products.concat(w.products,k.products).map(function(p){return p.slug;}).sort();
+var want=h.PRODUCTS.map(function(p){return p.slug;}).sort();
+if(all.join(",")!==want.join(","))process.exit(1);
+if(h.recommendFor("nope").products.length!==0)process.exit(1);'
+
+flow "searchProducts: text + lane filtering" '
+var h=require("./js/data.js");
+if(h.searchProducts("review","all").length!==2)process.exit(1);
+if(h.searchProducts("", "Earn reviews").length!==1)process.exit(1);
+if(h.searchProducts("", "all").length!==9)process.exit(1);
+if(h.searchProducts("offline","all").length!==2)process.exit(1);
+if(h.allLanes().length!==9)process.exit(1);'
+
 echo "---"
 echo "e2e: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

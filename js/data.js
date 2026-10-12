@@ -144,11 +144,97 @@
     return null;
   }
 
+  /* --- Build-your-bundle quote -------------------------------------------
+   * Pick any subset of products; the quote tells you whether the Growth Kit
+   * bundle (all nine for BUNDLE.price) beats buying your picks separately.
+   */
+  function quotePlan(slugs) {
+    var picks = [];
+    var seen = {};
+    (slugs || []).forEach(function (slug) {
+      var p = getProduct(slug);
+      if (p && !seen[slug]) { seen[slug] = true; picks.push(p); }
+    });
+    var separate = picks.reduce(function (sum, p) { return sum + p.price; }, 0);
+    var bundleCheaper = separate > BUNDLE.price;
+    return {
+      picks: picks.map(function (p) { return p.slug; }),
+      count: picks.length,
+      separate: separate,
+      effective: bundleCheaper ? BUNDLE.price : separate,
+      bundleApplies: bundleCheaper,
+      savings: bundleCheaper ? separate - BUNDLE.price : 0,
+      verdict: picks.length === 0
+        ? "Pick at least one product to see your quote."
+        : bundleCheaper
+          ? "Take the Growth Kit — all nine for $" + BUNDLE.price + "/mo beats your picks by $" + (separate - BUNDLE.price) + "/mo."
+          : "Buy your picks separately for $" + separate + "/mo — the bundle isn't worth it unless you want all nine."
+    };
+  }
+
+  /* --- Product finder -----------------------------------------------------
+   * Three plain-English goals map onto the three acts of the growth story.
+   */
+  var GOALS = [
+    {
+      key: "found",
+      label: "Get found",
+      blurb: "Nobody can find your business yet.",
+      lanes: ["Get found", "Stay visible"]
+    },
+    {
+      key: "win",
+      label: "Win the customer",
+      blurb: "You're visible — now you need to convert.",
+      lanes: ["Catch new leads", "Fill the funnel", "Quote it right"]
+    },
+    {
+      key: "keep",
+      label: "Keep & multiply",
+      blurb: "You have customers — grow them and their friends.",
+      lanes: ["Earn reviews", "Build loyalty", "Win referrals", "Revive old customers"]
+    }
+  ];
+
+  function recommendFor(goalKey) {
+    var goal = null;
+    GOALS.forEach(function (g) { if (g.key === goalKey) goal = g; });
+    if (!goal) return { goal: null, products: [] };
+    return {
+      goal: goal,
+      products: PRODUCTS.filter(function (p) { return goal.lanes.indexOf(p.lane) !== -1; })
+    };
+  }
+
+  /* --- Search / filter ---------------------------------------------------- */
+  function searchProducts(query, lane) {
+    var q = (query || "").trim().toLowerCase();
+    return PRODUCTS.filter(function (p) {
+      if (lane && lane !== "all" && p.lane !== lane) return false;
+      if (!q) return true;
+      var hay = (p.name + " " + p.tagline + " " + p.lane + " " + p.features.join(" ")).toLowerCase();
+      return hay.indexOf(q) !== -1;
+    });
+  }
+
+  function allLanes() {
+    var lanes = [];
+    PRODUCTS.forEach(function (p) {
+      if (lanes.indexOf(p.lane) === -1) lanes.push(p.lane);
+    });
+    return lanes;
+  }
+
   return {
     PRODUCTS: PRODUCTS,
     BUNDLE: BUNDLE,
+    GOALS: GOALS,
     totalSeparate: totalSeparate,
     bundleSavings: bundleSavings,
-    getProduct: getProduct
+    getProduct: getProduct,
+    quotePlan: quotePlan,
+    recommendFor: recommendFor,
+    searchProducts: searchProducts,
+    allLanes: allLanes
   };
 }));
