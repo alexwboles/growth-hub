@@ -1,5 +1,7 @@
 /* growth-hub UI — renders product cards from the shared catalogue,
-   plus the finder quiz, search/lane filter, and build-your-bundle quote. */
+   plus the finder quiz, search/lane filter, billing-period toggle,
+   side-by-side product comparison, and build-your-bundle quote with
+   shareable links. */
 (function () {
   var hub = window.GrowthHub;
 
@@ -11,6 +13,8 @@
   }
 
   var recommended = null; /* array of slugs highlighted by the finder, or null */
+  var period = "monthly"; /* "monthly" | "annual" */
+  var compareSlugs = []; /* up to 3 slugs in the comparison table */
 
   function cardMatchesFilter(p) {
     var q = document.getElementById("search").value;
@@ -19,6 +23,7 @@
     return list.indexOf(p) !== -1;
   }
 
+  /* --- product cards ---------------------------------------------------- */
   function renderCards() {
     var grid = document.getElementById("cards");
     grid.innerHTML = "";
@@ -36,12 +41,22 @@
       p.features.forEach(function (f) { ul.appendChild(el("li", null, f)); });
       card.appendChild(ul);
       var foot = el("div", "cardfoot");
-      foot.appendChild(el("span", "price", "$" + p.price + "/mo"));
+      foot.appendChild(el("span", "price", "$" + hub.priceFor(p, period) + hub.periodUnit(period)));
+      var row = el("div", "card-actions");
+      var cmp = el("button", "btn ghost" + (compareSlugs.indexOf(p.slug) !== -1 ? " on" : ""),
+        compareSlugs.indexOf(p.slug) !== -1 ? "In compare ✓" : "+ Compare");
+      cmp.type = "button";
+      cmp.setAttribute("aria-pressed", compareSlugs.indexOf(p.slug) !== -1 ? "true" : "false");
+      (function (slug) {
+        cmp.addEventListener("click", function () { toggleCompare(slug); });
+      })(p.slug);
+      row.appendChild(cmp);
       var a = el("a", "btn", "View on GitHub");
       a.href = p.repo;
       a.target = "_blank";
       a.rel = "noopener";
-      foot.appendChild(a);
+      row.appendChild(a);
+      foot.appendChild(row);
       card.appendChild(foot);
       grid.appendChild(card);
     });
@@ -49,6 +64,29 @@
       shown === hub.PRODUCTS.length
         ? "Showing all " + shown + " products."
         : "Showing " + shown + " of " + hub.PRODUCTS.length + " products.";
+  }
+
+  /* --- billing-period toggle -------------------------------------------- */
+  function renderBilling() {
+    var wrap = document.getElementById("billing-toggle");
+    wrap.innerHTML = "";
+    [["monthly", "Monthly"], ["annual", "Annual — " + hub.BILLING.annualLabel]].forEach(function (pair) {
+      var b = el("button", "toggle-btn" + (period === pair[0] ? " active" : ""), pair[1]);
+      b.type = "button";
+      b.setAttribute("aria-pressed", period === pair[0] ? "true" : "false");
+      (function (per) {
+        b.addEventListener("click", function () { setPeriod(per); });
+      })(pair[0]);
+      wrap.appendChild(b);
+    });
+  }
+
+  function setPeriod(per) {
+    period = hub.normalizePeriod(per);
+    renderBilling();
+    renderCards();
+    renderBundle();
+    renderQuote();
   }
 
   /* --- finder quiz ------------------------------------------------------ */
@@ -89,9 +127,69 @@
     sel.addEventListener("change", renderCards);
   }
 
+  /* --- side-by-side comparison ------------------------------------------ */
+  function toggleCompare(slug) {
+    var i = compareSlugs.indexOf(slug);
+    if (i !== -1) {
+      compareSlugs.splice(i, 1);
+    } else if (compareSlugs.length < 3) {
+      compareSlugs.push(slug);
+    } else {
+      document.getElementById("compare-note").textContent =
+        "Compare holds 3 products at a time — remove one to add another.";
+      return;
+    }
+    renderCards();
+    renderCompare();
+  }
+
+  function renderCompare() {
+    var sec = document.getElementById("compare");
+    var box = document.getElementById("compare-table");
+    var note = document.getElementById("compare-note");
+    box.innerHTML = "";
+    if (compareSlugs.length < 2) {
+      sec.className = "hidden";
+      return;
+    }
+    sec.className = "";
+    note.textContent = "";
+    var m = hub.compareMatrix(compareSlugs);
+    var table = document.createElement("table");
+    var head = document.createElement("tr");
+    head.appendChild(document.createElement("th"));
+    m.products.forEach(function (slug) {
+      var p = hub.getProduct(slug);
+      var th = document.createElement("th");
+      th.textContent = p.name;
+      var rm = el("button", "linkbtn", "remove");
+      rm.type = "button";
+      (function (s) { rm.addEventListener("click", function () { toggleCompare(s); }); })(slug);
+      th.appendChild(document.createElement("br"));
+      th.appendChild(rm);
+      head.appendChild(th);
+    });
+    table.appendChild(head);
+    m.rows.forEach(function (r) {
+      var tr = document.createElement("tr");
+      var th = document.createElement("th");
+      th.textContent = r.label;
+      th.scope = "row";
+      tr.appendChild(th);
+      r.values.forEach(function (v) {
+        var td = document.createElement("td");
+        td.textContent = v;
+        tr.appendChild(td);
+      });
+      table.appendChild(tr);
+    });
+    box.appendChild(table);
+  }
+
   /* --- build-your-bundle quote ------------------------------------------ */
   function renderBuilder() {
     var list = document.getElementById("pick-list");
+    list.innerHTML = "";
     hub.PRODUCTS.forEach(function (p) {
       var label = el("label", "pick");
       var box = document.createElement("input");
@@ -101,9 +199,10 @@
       box.addEventListener("change", renderQuote);
       label.appendChild(box);
       label.appendChild(el("span", "pick-name", p.name));
-      label.appendChild(el("span", "pick-price", "$" + p.price + "/mo"));
+      label.appendChild(el("span", "pick-price", "$" + hub.priceFor(p, period) + hub.periodUnit(period)));
       list.appendChild(label);
     });
+    document.getElementById("share-bundle").addEventListener("click", shareBundle);
     renderQuote();
   }
 
@@ -113,14 +212,14 @@
   }
 
   function renderQuote() {
-    var q = hub.quotePlan(selectedSlugs());
+    var q = hub.quotePlan(selectedSlugs(), period);
     var box = document.getElementById("quote");
     box.innerHTML = "";
     box.appendChild(el("div", "quote-line",
-      q.count + " picked · separately $" + q.separate + "/mo"));
+      q.count + " picked · separately $" + q.separate + hub.periodUnit(period)));
     if (q.count > 0) {
       box.appendChild(el("div", "quote-line",
-        "Growth Kit (all nine): $" + hub.BUNDLE.price + "/mo"));
+        "Growth Kit (all nine): $" + hub.bundlePrice(period) + hub.periodUnit(period)));
       var verdict = el("p", "quote-verdict" + (q.bundleApplies ? " bundle-wins" : ""), q.verdict);
       box.appendChild(verdict);
     } else {
@@ -128,21 +227,52 @@
     }
   }
 
+  /* --- shareable bundle link -------------------------------------------- */
+  function shareBundle() {
+    var link = location.href.split("#")[0] + "#" + hub.encodeShare(selectedSlugs(), period);
+    var note = document.getElementById("share-note");
+    function done(msg) { note.textContent = msg; }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(link).then(
+        function () { done("Link copied — it opens this exact quote and billing choice."); },
+        function () { done("Copy this link: " + link); });
+    } else {
+      done("Copy this link: " + link);
+    }
+  }
+
+  function applySharedLink() {
+    if (!location.hash) return;
+    var d = hub.decodeShare(location.hash);
+    if (!d.slugs.length) return;
+    period = d.period;
+    var boxes = document.querySelectorAll("#pick-list input[type=checkbox]");
+    Array.prototype.forEach.call(boxes, function (b) {
+      b.checked = d.slugs.indexOf(b.value) !== -1;
+    });
+  }
+
   function renderBundle() {
-    var separate = hub.totalSeparate();
-    var save = hub.bundleSavings();
-    document.getElementById("separate-price").textContent = "$" + separate + "/mo";
-    document.getElementById("bundle-price").textContent = "$" + hub.BUNDLE.price + "/mo";
+    document.getElementById("separate-price").textContent =
+      "$" + hub.totalSeparate() * (period === "annual" ? hub.BILLING.annualMonths : 1) + hub.periodUnit(period);
+    document.getElementById("bundle-price").textContent =
+      "$" + hub.bundlePrice(period) + hub.periodUnit(period);
     document.getElementById("bundle-name").textContent = hub.BUNDLE.name;
     document.getElementById("bundle-save").textContent =
-      "Save $" + save + "/mo vs buying separately";
+      "Save $" + (hub.bundleSavings() * (period === "annual" ? hub.BILLING.annualMonths : 1)) + hub.periodUnit(period) + " vs buying separately";
   }
 
   document.addEventListener("DOMContentLoaded", function () {
+    renderBilling();
     renderFinder();
     renderFilters();
     renderCards();
     renderBuilder();
+    applySharedLink();
+    renderBilling();
+    renderCards();
     renderBundle();
+    renderQuote();
+    renderCompare();
   });
 })();

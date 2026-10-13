@@ -128,6 +128,56 @@ if(h.searchProducts("", "all").length!==9)process.exit(1);
 if(h.searchProducts("offline","all").length!==2)process.exit(1);
 if(h.allLanes().length!==9)process.exit(1);'
 
+flow "quotePlan: annual billing, all nine => bundle wins at 1490/yr" '
+var h=require("./js/data.js");
+var q=h.quotePlan(["seocheck-ai","socialspark-ai","leadqualify-ai","adcopy-ai","pricingpilot-ai","reviewpilot-ai","loyaltyloop-ai","referralpilot-ai","winback-ai"],"annual");
+if(q.period!=="annual")process.exit(1);
+if(q.separate!==2160)process.exit(1);
+if(q.bundleApplies!==true||q.effective!==1490||q.savings!==670)process.exit(1);
+if(!/1490\/yr/.test(q.verdict))process.exit(1);'
+
+flow "quotePlan: annual, one pick => separate wins, 2-months-free note" '
+var h=require("./js/data.js");
+var q=h.quotePlan(["seocheck-ai"],"annual");
+if(q.separate!==190||q.bundleApplies!==false)process.exit(1);
+if(!/2 months free/.test(q.verdict))process.exit(1);'
+
+flow "quotePlan: legacy two-arg call still monthly" '
+var h=require("./js/data.js");
+var q=h.quotePlan(["seocheck-ai"]);
+if(q.period!=="monthly"||q.separate!==19)process.exit(1);'
+
+flow "encodeShare/decodeShare round-trip with period" '
+var h=require("./js/data.js");
+var s=h.encodeShare(["seocheck-ai","nope","adcopy-ai","seocheck-ai"],"annual");
+if(s!=="bundle=seocheck-ai,adcopy-ai&period=annual")process.exit(1);
+var d=h.decodeShare("#"+s);
+if(d.period!=="annual")process.exit(1);
+if(d.slugs.join(",")!=="seocheck-ai,adcopy-ai")process.exit(1);
+var d2=h.decodeShare("#bundle=winback-ai&x=1");
+if(d2.period!=="monthly"||d2.slugs.join(",")!=="winback-ai")process.exit(1);
+var d3=h.decodeShare("");
+if(d3.period!=="monthly"||d3.slugs.length!==0)process.exit(1);'
+
+flow "compareMatrix: 3 products, dedupes, caps at 3, padded features" '
+var h=require("./js/data.js");
+var m=h.compareMatrix(["seocheck-ai","adcopy-ai","nope","seocheck-ai","reviewpilot-ai","winback-ai"]);
+if(m.products.length!==3)process.exit(1);
+if(m.products.join(",")!=="seocheck-ai,adcopy-ai,reviewpilot-ai")process.exit(1);
+var labels=m.rows.map(function(r){return r.label;});
+if(labels[0]!=="Lane"||labels[1]!=="Monthly price"||labels[2]!=="Annual price"||labels[3]!=="Tagline")process.exit(1);
+m.rows.forEach(function(r){if(r.values.length!==3)process.exit(1);});
+if(!/190\/yr/.test(m.rows[2].values[0]))process.exit(1);
+var featRows=m.rows.filter(function(r){return /^Feature /.test(r.label);});
+if(featRows.length!==3)process.exit(1);
+var single=h.compareMatrix(["seocheck-ai"]);
+if(single.rows[0].values.length!==1)process.exit(1);'
+
+flow "compareMatrix: empty input yields empty matrix" '
+var h=require("./js/data.js");
+var m=h.compareMatrix([]);
+if(m.products.length!==0||m.rows[0].values.length!==0)process.exit(1);'
+
 echo "---"
 echo "e2e: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

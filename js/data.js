@@ -129,6 +129,27 @@
 
   var BUNDLE = { name: "Growth Kit", price: 149 };
 
+  /* --- Billing periods ----------------------------------------------------
+   * Monthly is pay-as-you-go; annual is 10x the monthly price (2 months free).
+   */
+  var BILLING = { annualMonths: 10, annualLabel: "2 months free" };
+
+  function normalizePeriod(period) {
+    return period === "annual" ? "annual" : "monthly";
+  }
+
+  function priceFor(p, period) {
+    return normalizePeriod(period) === "annual" ? p.price * BILLING.annualMonths : p.price;
+  }
+
+  function bundlePrice(period) {
+    return normalizePeriod(period) === "annual" ? BUNDLE.price * BILLING.annualMonths : BUNDLE.price;
+  }
+
+  function periodUnit(period) {
+    return normalizePeriod(period) === "annual" ? "/yr" : "/mo";
+  }
+
   function totalSeparate() {
     return PRODUCTS.reduce(function (sum, p) { return sum + p.price; }, 0);
   }
@@ -148,28 +169,89 @@
    * Pick any subset of products; the quote tells you whether the Growth Kit
    * bundle (all nine for BUNDLE.price) beats buying your picks separately.
    */
-  function quotePlan(slugs) {
+  function quotePlan(slugs, period) {
+    period = normalizePeriod(period);
     var picks = [];
     var seen = {};
     (slugs || []).forEach(function (slug) {
       var p = getProduct(slug);
       if (p && !seen[slug]) { seen[slug] = true; picks.push(p); }
     });
-    var separate = picks.reduce(function (sum, p) { return sum + p.price; }, 0);
-    var bundleCheaper = separate > BUNDLE.price;
+    var separate = picks.reduce(function (sum, p) { return sum + priceFor(p, period); }, 0);
+    var bp = bundlePrice(period);
+    var unit = periodUnit(period);
+    var bundleCheaper = separate > bp;
+    var perNote = period === "annual" ? " (annual, " + BILLING.annualLabel + ")" : "";
     return {
       picks: picks.map(function (p) { return p.slug; }),
       count: picks.length,
+      period: period,
       separate: separate,
-      effective: bundleCheaper ? BUNDLE.price : separate,
+      effective: bundleCheaper ? bp : separate,
       bundleApplies: bundleCheaper,
-      savings: bundleCheaper ? separate - BUNDLE.price : 0,
+      savings: bundleCheaper ? separate - bp : 0,
       verdict: picks.length === 0
         ? "Pick at least one product to see your quote."
         : bundleCheaper
-          ? "Take the Growth Kit — all nine for $" + BUNDLE.price + "/mo beats your picks by $" + (separate - BUNDLE.price) + "/mo."
-          : "Buy your picks separately for $" + separate + "/mo — the bundle isn't worth it unless you want all nine."
+          ? "Take the Growth Kit — all nine for $" + bp + unit + perNote + " beats your picks by $" + (separate - bp) + unit + "."
+          : "Buy your picks separately for $" + separate + unit + perNote + " — the bundle isn't worth it unless you want all nine."
     };
+  }
+
+  /* --- Shareable bundle quotes ---------------------------------------------
+   * encodeShare turns the builder's picks + billing period into a URL hash;
+   * decodeShare validates it back (unknown slugs and bad periods are dropped).
+   */
+  function encodeShare(slugs, period) {
+    var picks = [];
+    var seen = {};
+    (slugs || []).forEach(function (slug) {
+      var p = getProduct(slug);
+      if (p && !seen[slug]) { seen[slug] = true; picks.push(slug); }
+    });
+    return "bundle=" + picks.join(",") + "&period=" + normalizePeriod(period);
+  }
+
+  function decodeShare(hash) {
+    var out = { slugs: [], period: "monthly" };
+    var s = String(hash || "").replace(/^#/, "");
+    s.split("&").forEach(function (part) {
+      var kv = part.split("=");
+      if (kv[0] === "bundle" && kv[1]) {
+        kv[1].split(",").forEach(function (slug) {
+          if (getProduct(slug) && out.slugs.indexOf(slug) === -1) out.slugs.push(slug);
+        });
+      }
+      if (kv[0] === "period" && kv[1] === "annual") out.period = "annual";
+    });
+    return out;
+  }
+
+  /* --- Side-by-side comparison ---------------------------------------------
+   * compareMatrix validates up to 3 slugs and returns rows for a table:
+   * lane, monthly/annual price, tagline, then each feature line.
+   */
+  function compareMatrix(slugs) {
+    var prods = [];
+    (slugs || []).forEach(function (slug) {
+      var p = getProduct(slug);
+      if (p && prods.indexOf(p) === -1 && prods.length < 3) prods.push(p);
+    });
+    var maxF = 0;
+    prods.forEach(function (p) { maxF = Math.max(maxF, p.features.length); });
+    var rows = [
+      { label: "Lane", values: prods.map(function (p) { return p.lane; }) },
+      { label: "Monthly price", values: prods.map(function (p) { return "$" + p.price + "/mo"; }) },
+      { label: "Annual price", values: prods.map(function (p) { return "$" + priceFor(p, "annual") + "/yr (" + BILLING.annualLabel + ")"; }) },
+      { label: "Tagline", values: prods.map(function (p) { return p.tagline; }) }
+    ];
+    for (var i = 0; i < maxF; i++) {
+      rows.push({
+        label: "Feature " + (i + 1),
+        values: prods.map(function (p) { return p.features[i] || "—"; })
+      });
+    }
+    return { products: prods.map(function (p) { return p.slug; }), rows: rows };
   }
 
   /* --- Product finder -----------------------------------------------------
@@ -228,11 +310,19 @@
   return {
     PRODUCTS: PRODUCTS,
     BUNDLE: BUNDLE,
+    BILLING: BILLING,
     GOALS: GOALS,
     totalSeparate: totalSeparate,
     bundleSavings: bundleSavings,
     getProduct: getProduct,
+    normalizePeriod: normalizePeriod,
+    priceFor: priceFor,
+    bundlePrice: bundlePrice,
+    periodUnit: periodUnit,
     quotePlan: quotePlan,
+    encodeShare: encodeShare,
+    decodeShare: decodeShare,
+    compareMatrix: compareMatrix,
     recommendFor: recommendFor,
     searchProducts: searchProducts,
     allLanes: allLanes

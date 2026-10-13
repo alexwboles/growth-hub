@@ -6,7 +6,7 @@
   --accent: #2563eb;
   --accent-soft: #e8effe;
   --border: #e3e8f0;
-  --radius: 14px;
+  --radius: 0;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
@@ -30,7 +30,7 @@ body {
   text-transform: uppercase;
   background: rgba(255,255,255,.15);
   padding: 6px 14px;
-  border-radius: 999px;
+  border-radius: 0;
   margin-bottom: 20px;
 }
 .hero h1 { font-size: 40px; line-height: 1.2; margin-bottom: 16px; letter-spacing: -0.5px; }
@@ -79,7 +79,7 @@ section { margin-bottom: 64px; }
   text-decoration: none;
   font-weight: 600;
   padding: 10px 18px;
-  border-radius: 10px;
+  border-radius: 0;
 }
 .btn:hover { background: #1d4ed8; }
 
@@ -154,3 +154,40 @@ footer { border-top: 1px solid var(--border); padding: 28px 0 40px; color: var(-
 .quote-line { font-size: 16px; margin-bottom: 6px; }
 .quote-verdict { font-size: 17px; font-weight: 600; margin-top: 12px; }
 .quote-verdict.bundle-wins { color: var(--accent); }
+
+/* --- billing toggle ----------------------------------------------------- */
+.billing-toggle { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+.toggle-btn {
+  padding: 10px 20px; border: 2px solid var(--border); background: #fff;
+  font-size: 15px; font-weight: 600; cursor: pointer; border-radius: 0;
+}
+.toggle-btn:hover { border-color: var(--accent); }
+.toggle-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* --- compare ------------------------------------------------------------ */
+.hidden { display: none; }
+.card-actions { display: flex; gap: 10px; align-items: center; }
+.btn.ghost {
+  background: #fff; color: var(--ink); border: 1px solid var(--border);
+  padding: 8px 12px; font-size: 14px; cursor: pointer;
+}
+.btn.ghost:hover { border-color: var(--accent); color: var(--accent); background: #fff; }
+.btn.ghost.on { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+.compare-wrap { overflow-x: auto; background: #fff; border: 2px solid var(--border); }
+.compare-wrap table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.compare-wrap th, .compare-wrap td {
+  text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: top;
+}
+.compare-wrap thead th, .compare-wrap tr:first-child th {
+  background: var(--accent-soft); font-size: 17px;
+}
+.compare-wrap th[scope="row"] { color: var(--muted); font-weight: 600; white-space: nowrap; }
+.linkbtn {
+  background: none; border: none; color: var(--accent); font-size: 13px;
+  cursor: pointer; padding: 0; text-decoration: underline; font-weight: 400;
+}
+
+/* --- share row ---------------------------------------------------------- */
+.share-row { display: flex; align-items: center; gap: 16px; margin-top: 16px; flex-wrap: wrap; }
+.share-note { color: var(--muted); font-size: 14px; max-width: 640px; }
+#share-bundle { cursor: pointer; border: none; font-size: 15px; }
