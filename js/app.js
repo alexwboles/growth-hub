@@ -34,6 +34,9 @@
       var card = el("article", "card");
       card.id = "card-" + p.slug;
       if (recommended && recommended.indexOf(p.slug) !== -1) card.className += " recommended";
+      var actN = hub.actOf(p.lane);
+      var act = actN ? hub.ACTS[actN - 1] : null;
+      if (act) card.appendChild(el("div", "act-chip", "Act 0" + actN + " — " + act.name));
       card.appendChild(el("div", "lane", p.lane));
       card.appendChild(el("h2", null, p.name));
       card.appendChild(el("p", "tagline", p.tagline));
@@ -262,7 +265,64 @@
       "Save $" + (hub.bundleSavings() * (period === "annual" ? hub.BILLING.annualMonths : 1)) + hub.periodUnit(period) + " vs buying separately";
   }
 
+  /* --- three-act pipeline ------------------------------------------------ */
+  function renderPipeline() {
+    var pipe = document.getElementById("pipeline");
+    if (!pipe) return;
+    pipe.innerHTML = "";
+    hub.ACTS.forEach(function (act, i) {
+      var names = hub.PRODUCTS
+        .filter(function (p) { return hub.actOf(p.lane) === act.n; })
+        .map(function (p) { return p.name; });
+      var box = el("div", "act");
+      box.appendChild(el("div", "act-num", "Act 0" + act.n));
+      box.appendChild(el("h3", null, act.name));
+      box.appendChild(el("p", null, act.blurb));
+      var tools = el("div", "act-tools");
+      tools.innerHTML = "<b>Tools:</b> " + names.join(" · ");
+      box.appendChild(tools);
+      pipe.appendChild(box);
+      if (i < hub.ACTS.length - 1) {
+        var arrow = el("div", "pipe-arrow", "→");
+        arrow.setAttribute("aria-hidden", "true");
+        pipe.appendChild(arrow);
+      }
+    });
+    var fly = document.createElement("div");
+    fly.className = "flywheel";
+    fly.innerHTML = "<b>↺ The flywheel:</b> every win in Act 3 feeds Act 1 — more reviews lift local search, more customers mean more referrals.";
+    pipe.parentNode.insertBefore(fly, pipe.nextSibling);
+  }
+
+  /* --- lapsed-revenue estimator -------------------------------------------- */
+  function fmt(n) { return Math.round(n).toLocaleString("en-US"); }
+  function renderEstimator() {
+    var lapsedEl = document.getElementById("est-lapsed");
+    var dealEl = document.getElementById("est-deal");
+    var rateEl = document.getElementById("est-rate");
+    var out = document.getElementById("est-result");
+    if (!lapsedEl || !dealEl || !rateEl || !out) return;
+    function draw() {
+      var r = hub.estimateRecovery(lapsedEl.value, dealEl.value, rateEl.value / 100);
+      document.getElementById("est-rate-val").textContent = Math.round(r.rate * 100) + "%";
+      var netCls = r.net >= 0 ? "est-net-good" : "est-net-bad";
+      var netTxt = (r.net >= 0 ? "+$" : "−$") + fmt(Math.abs(r.net));
+      out.innerHTML =
+        "Winning back <b>" + r.rate * 100 + "%</b> of <b>" + fmt(r.lapsed) + "</b> lapsed customers " +
+        "at <b>$" + fmt(r.dealValue) + "</b> a deal recovers about <b>$" + fmt(r.recovered) + "/mo</b>. " +
+        "The Growth Kit costs <b>$" + fmt(r.cost) + "/mo</b> — net <b class=\"" + netCls + "\">" + netTxt + "/mo</b>. " +
+        (r.net >= 0
+          ? "The kit pays for itself on win-back alone."
+          : "Tight — but the kit also covers acquisition and retention, not just win-back.");
+    }
+    [lapsedEl, dealEl, rateEl].forEach(function (elm) {
+      elm.addEventListener("input", draw);
+    });
+    draw();
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
+    renderPipeline();
     renderBilling();
     renderFinder();
     renderFilters();
@@ -274,5 +334,6 @@
     renderBundle();
     renderQuote();
     renderCompare();
+    renderEstimator();
   });
 })();

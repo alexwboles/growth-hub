@@ -299,6 +299,37 @@
     });
   }
 
+  var ACTS = [
+    { n: 1, name: "Get found",
+      blurb: "Nobody buys what they can't find. SEOCheck audits your local presence and tells you what to fix first; SocialSpark keeps you visible week after week." },
+    { n: 2, name: "Win the customer",
+      blurb: "Traffic is only worth what you convert. LeadQualify catches the visitor and scores them; AdCopy fills the funnel with paid traffic that reads like you; PricingPilot prices every quote to win the job and protect your margin." },
+    { n: 3, name: "Keep them & multiply",
+      blurb: "A won customer is an asset. ReviewPilot turns them into public 5-star proof, LoyaltyLoop into repeat visits, ReferralPilot into new customers — and WinBack pulls the lapsed ones back into the loop." }
+  ];
+
+  var LANE_ACT = {
+    "Get found": 1, "Stay visible": 1,
+    "Catch new leads": 2, "Fill the funnel": 2, "Quote it right": 2,
+    "Earn reviews": 3, "Build loyalty": 3, "Win referrals": 3, "Revive old customers": 3
+  };
+
+  /** Which act (1-3) a lane belongs to. Pure. */
+  function actOf(lane) { return LANE_ACT[lane] || 0; }
+
+  /** Lapsed-revenue recovery estimate (the WinBack pitch, as honest math).
+   *  lapsed: dormant customers on your list; deal: avg deal value ($);
+   *  rate: fraction you expect to win back (0-1). Pure. */
+  function estimateRecovery(lapsed, deal, rate) {
+    var l = Math.max(0, Math.floor(Number(lapsed) || 0));
+    var d = Math.max(0, Number(deal) || 0);
+    var r = Math.min(1, Math.max(0, Number(rate) || 0));
+    var recovered = Math.round(l * r * d);
+    var cost = BUNDLE.price; // monthly Growth Kit price
+    return { lapsed: l, dealValue: d, rate: r, recovered: recovered,
+             cost: cost, net: recovered - cost };
+  }
+
   function allLanes() {
     var lanes = [];
     PRODUCTS.forEach(function (p) {
@@ -325,6 +356,9 @@
     compareMatrix: compareMatrix,
     recommendFor: recommendFor,
     searchProducts: searchProducts,
-    allLanes: allLanes
+    allLanes: allLanes,
+    ACTS: ACTS,
+    actOf: actOf,
+    estimateRecovery: estimateRecovery
   };
 }));

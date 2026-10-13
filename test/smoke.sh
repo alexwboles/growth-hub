@@ -20,6 +20,8 @@ check "index.html loads app.js"      "grep -q 'js/app.js' index.html"
 check "finder section present"       "grep -q 'id=\"finder\"' index.html"
 check "search + lane filter present" "grep -q 'id=\"search\"' index.html && grep -q 'id=\"lane-filter\"' index.html"
 check "bundle builder present"       "grep -q 'id=\"builder\"' index.html && grep -q 'id=\"pick-list\"' index.html && grep -q 'id=\"quote\"' index.html"
+check "act pipeline present"         "grep -q 'id=\"pipeline\"' index.html"
+check "estimator present"            "grep -q 'id=\"est-lapsed\"' index.html && grep -q 'id=\"est-rate\"' index.html && grep -q 'id=\"est-result\"' index.html"
 check "README documents bundle"      "grep -q 'Growth Kit' README.md"
 check "no menucraft-ai references"   "! grep -rq 'menucraft' index.html js README.md"
 check "compare section present"      "grep -q 'id=\"compare\"' index.html && grep -q 'id=\"compare-table\"' index.html"
@@ -46,6 +48,17 @@ assert.strictEqual(h.priceFor(h.getProduct("seocheck-ai"),"annual"), 190, "annua
 assert.strictEqual(h.bundlePrice("annual"), 1490, "annual bundle 1490");
 assert.strictEqual(h.periodUnit("annual"), "/yr", "yr unit");
 assert.strictEqual(h.normalizePeriod("bogus"), "monthly", "bad period -> monthly");
+assert.strictEqual(h.ACTS.length, 3, "3 acts");
+assert.strictEqual(h.actOf("Fill the funnel"), 2, "lane -> act 2");
+assert.strictEqual(h.actOf("Revive old customers"), 3, "lane -> act 3");
+assert.strictEqual(h.actOf("nope"), 0, "unknown lane -> 0");
+var er = h.estimateRecovery(200, 150, 0.05);
+assert.strictEqual(er.recovered, 1500, "recovery math");
+assert.strictEqual(er.cost, 149, "kit cost in estimate");
+assert.strictEqual(er.net, 1351, "net");
+var er0 = h.estimateRecovery(-5, "abc", 9);
+assert.strictEqual(er0.recovered, 0, "bad inputs clamp to 0");
+assert.strictEqual(er0.rate, 1, "rate clamps to 1");
 console.log("data assertions OK");
 ' && { PASS=$((PASS+1)); echo "PASS: data.js catalogue assertions"; } \
   || { FAIL=$((FAIL+1)); echo "FAIL: data.js catalogue assertions"; }

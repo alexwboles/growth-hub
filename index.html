@@ -4,27 +4,58 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Growth Hub — Customer Growth Kit</title>
+<meta name="description" content="Nine independent AI micro-products that answer one question: how do I get more customers?">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<header class="hero">
-  <div class="wrap">
-    <div class="kicker">Customer Growth Kit</div>
-    <h1>Nine ways to grow:<br>get found, win the customer, keep them &amp; multiply.</h1>
-    <p class="sub">Nine independent AI micro-products. Each stands alone — they just happen to answer the same question: <em>how do I get more customers?</em></p>
+
+<header class="topbar">
+  <div class="wrap topbar-in">
+    <a class="wordmark" href="./"><span class="wordmark-dot" aria-hidden="true"></span>Growth Hub</a>
+    <p class="topbar-meta">9 tools · 3 acts · <strong>$149/mo</strong> for the kit</p>
   </div>
 </header>
 
+<section class="hero">
+  <div class="wrap">
+    <p class="kicker">Customer growth kit</p>
+    <h1>Get found.<br>Win the customer.<br><span class="accent-line">Keep them &amp; multiply.</span></h1>
+    <p class="sub">Nine independent AI micro-products. Each stands alone — they just happen to answer the same question: <em>how do I get more customers?</em></p>
+    <div class="hero-stats">
+      <div class="hstat"><b>9</b><span>products</span></div>
+      <div class="hstat"><b>3</b><span>acts</span></div>
+      <div class="hstat"><b>$67</b><span>saved /mo on the kit</span></div>
+    </div>
+  </div>
+</section>
+
 <main class="wrap">
-  <section id="finder">
-    <h2 class="section-title">Where's your bottleneck?</h2>
-    <p class="section-sub">Pick the one that hurts most — the hub highlights the products built for it.</p>
+
+  <section id="finder" class="console" aria-labelledby="finder-h">
+    <div class="console-head">
+      <h2 id="finder-h">Where's your bottleneck?</h2>
+      <p>Run the diagnostic — the floor lights up the tools built for it.</p>
+    </div>
     <div id="goal-picks" class="goal-picks"></div>
     <p id="goal-result" class="goal-result" aria-live="polite"></p>
   </section>
 
-  <section id="products">
-    <h2 class="section-title">The products</h2>
+  <section id="acts" aria-labelledby="acts-h">
+    <div class="sec-head">
+      <h2 id="acts-h">The three-act playbook</h2>
+      <p>Every win in Act 3 feeds Act 1 — more reviews boost local search, more customers mean more referrals. The flywheel spins.</p>
+    </div>
+    <div class="pipeline" id="pipeline"></div>
+    <aside class="honest">
+      <h3>Honest note</h3>
+      <p>These are independent products, not one platform. The three acts are a playbook, not a package — buy one, bundle a few, or take all nine where it genuinely makes sense for your business. No forced connections.</p>
+    </aside>
+  </section>
+
+  <section id="products" aria-labelledby="products-h">
+    <div class="sec-head">
+      <h2 id="products-h">The products</h2>
+    </div>
     <div class="toolbar">
       <input id="search" type="search" placeholder="Search products, features…" aria-label="Search products">
       <select id="lane-filter" aria-label="Filter by lane">
@@ -35,48 +66,55 @@
     <div id="cards" class="grid"></div>
   </section>
 
-  <section id="connect">
-    <h2 class="section-title">How they connect</h2>
-    <div class="connect-grid">
-      <div class="connect-card">
-        <h3>Act 1 — Get found</h3>
-        <p><strong>SEOCheck</strong> audits your local presence and tells you what to fix first; <strong>SocialSpark</strong> keeps you visible week after week — one job photo becomes seven ready-to-post updates. No point winning a customer if they never find you.</p>
-      </div>
-      <div class="connect-card">
-        <h3>Act 2 — Win the customer</h3>
-        <p>Once you're visible, <strong>LeadQualify</strong> catches the visitor on your website and scores them hot, warm, or cold; <strong>AdCopy</strong> fills the funnel with paid traffic that actually reads like you; and <strong>PricingPilot</strong> prices every quote to win the job <em>and</em> protect your margin. Traffic is only worth what you convert.</p>
-      </div>
-      <div class="connect-card">
-        <h3>Act 3 — Keep them &amp; multiply</h3>
-        <p>A won customer is an asset: <strong>ReviewPilot</strong> turns them into public 5-star proof, <strong>LoyaltyLoop</strong> turns proof into repeat visits, and <strong>ReferralPilot</strong> turns repeat buyers into new customers. <strong>WinBack</strong> catches the ones that fell through the cracks — lapsed buyers, quiet leads, anyone who went dark — and pulls them back into the loop.</p>
-      </div>
-      <div class="connect-card honest">
-        <h3>Honest note</h3>
-        <p>These are independent products, not one platform. The three acts are a playbook, not a package — buy one, bundle a few, or take all nine where it genuinely makes sense for your business. No forced connections.</p>
-      </div>
+  <section id="estimator" class="console" aria-labelledby="est-h">
+    <div class="console-head">
+      <h2 id="est-h">The lapsed-revenue estimator</h2>
+      <p>WinBack's whole pitch, as honest math: what is your dead customer list actually worth?</p>
     </div>
+    <div class="est-grid">
+      <label class="est-field">Lapsed customers on your list
+        <input id="est-lapsed" type="number" min="0" step="1" value="200" inputmode="numeric">
+      </label>
+      <label class="est-field">Average deal value ($)
+        <input id="est-deal" type="number" min="0" step="10" value="150" inputmode="decimal">
+      </label>
+      <label class="est-field">Win-back rate: <output id="est-rate-val" for="est-rate">5%</output>
+        <input id="est-rate" type="range" min="1" max="25" step="1" value="5">
+      </label>
+    </div>
+    <div id="est-result" class="est-result" aria-live="polite"></div>
   </section>
 
-  <section id="compare" class="hidden">
-    <h2 class="section-title">Compare products</h2>
+  <section id="compare" class="hidden" aria-labelledby="compare-h">
+    <div class="sec-head">
+      <h2 id="compare-h">Compare products</h2>
+    </div>
     <p id="compare-note" class="section-sub" aria-live="polite"></p>
     <div id="compare-table" class="compare-wrap"></div>
   </section>
 
-  <section id="builder">
-    <h2 class="section-title">Build your bundle</h2>
-    <p class="section-sub">Check the products you'd actually buy. The hub quotes you against the Growth Kit — honestly, including when the bundle loses.</p>
+  <section id="builder" aria-labelledby="builder-h">
+    <div class="sec-head">
+      <h2 id="builder-h">Build your bundle</h2>
+      <p>Check the products you'd actually buy. The hub quotes you against the Growth Kit — honestly, including when the bundle loses.</p>
+    </div>
     <div id="billing-toggle" class="billing-toggle" role="group" aria-label="Billing period"></div>
-    <div id="pick-list" class="pick-list"></div>
-    <div id="quote" class="quote" aria-live="polite"></div>
-    <div class="share-row">
-      <button id="share-bundle" class="btn" type="button">Copy share link</button>
-      <p id="share-note" class="share-note" aria-live="polite"></p>
+    <div class="builder-grid">
+      <div id="pick-list" class="pick-list"></div>
+      <div class="quote-panel">
+        <div id="quote" class="quote" aria-live="polite"></div>
+        <div class="share-row">
+          <button id="share-bundle" class="btn" type="button">Copy share link</button>
+          <p id="share-note" class="share-note" aria-live="polite"></p>
+        </div>
+      </div>
     </div>
   </section>
 
-  <section id="bundle">
-    <h2 class="section-title">The bundle</h2>
+  <section id="bundle" aria-labelledby="bundle-h">
+    <div class="sec-head">
+      <h2 id="bundle-h">The bundle</h2>
+    </div>
     <div class="bundle-card">
       <div>
         <h3 id="bundle-name">Growth Kit</h3>
