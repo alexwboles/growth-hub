@@ -11,12 +11,17 @@ check() { # $1 = description, $2 = command...
 check "index.html exists"            "[ -f index.html ]"
 check "css/style.css exists"         "[ -f css/style.css ]"
 check "js/data.js exists"            "[ -f js/data.js ]"
+check "js/business-profile.js exists" "[ -f js/business-profile.js ]"
 check "js/app.js exists"             "[ -f js/app.js ]"
 check "README.md exists"             "[ -f README.md ]"
 check "data.js syntax valid"         "node --check js/data.js"
+check "business-profile.js syntax valid" "node --check js/business-profile.js"
 check "app.js syntax valid"          "node --check js/app.js"
 check "index.html loads data.js"     "grep -q 'js/data.js' index.html"
+check "index.html loads business-profile.js" "grep -q 'js/business-profile.js' index.html"
 check "index.html loads app.js"      "grep -q 'js/app.js' index.html"
+check "profile editor present"       "grep -q 'id=\"profile-form\"' index.html && grep -q 'id=\"profile-save\"' index.html && grep -q 'id=\"profile-status\"' index.html"
+check "README documents shared profile key" "grep -q 'growthhub.businessProfile' README.md"
 check "finder section present"       "grep -q 'id=\"finder\"' index.html"
 check "search + lane filter present" "grep -q 'id=\"search\"' index.html && grep -q 'id=\"lane-filter\"' index.html"
 check "bundle builder present"       "grep -q 'id=\"builder\"' index.html && grep -q 'id=\"pick-list\"' index.html && grep -q 'id=\"quote\"' index.html"
@@ -62,6 +67,41 @@ assert.strictEqual(er0.rate, 1, "rate clamps to 1");
 console.log("data assertions OK");
 ' && { PASS=$((PASS+1)); echo "PASS: data.js catalogue assertions"; } \
   || { FAIL=$((FAIL+1)); echo "FAIL: data.js catalogue assertions"; }
+
+node -e '
+var bp = require("./js/business-profile.js");
+var assert = require("assert");
+assert.strictEqual(bp.STORAGE_KEY, "growthhub.businessProfile", "storage key convention");
+assert.strictEqual(bp.SCHEMA_VERSION, 1, "schema version");
+assert.strictEqual(bp.FIELDS.length, 6, "6 documented fields");
+assert.deepStrictEqual(bp.FIELDS.map(function(f){return f.key;}),
+  ["businessName","trade","phone","socialHandle","cta","brandSafetyWords"], "field keys");
+var d = bp.defaultProfile();
+assert.deepStrictEqual(Object.keys(d).sort(),
+  ["brandSafetyWords","businessName","cta","phone","socialHandle","trade"], "default keys");
+assert.strictEqual(bp.hasBusinessProfile(), false, "empty by default");
+var saved = bp.setBusinessProfile({ businessName: "  Riverbend Roofing ", brandSafetyWords: "cheap, cheap\nBEST!!" });
+assert.strictEqual(saved.businessName, "Riverbend Roofing", "trims on write");
+assert.deepStrictEqual(saved.brandSafetyWords, ["cheap", "BEST!!"], "words parsed + deduped");
+assert.strictEqual(bp.hasBusinessProfile(), true, "non-empty -> has profile");
+var got = bp.getBusinessProfile();
+assert.strictEqual(got.businessName, "Riverbend Roofing", "roundtrip read");
+var merged = bp.setBusinessProfile({ phone: "(555) 123-4567" });
+assert.strictEqual(merged.businessName, "Riverbend Roofing", "merge keeps untouched fields");
+assert.strictEqual(merged.phone, "(555) 123-4567", "merge adds new field");
+var capped = bp.setBusinessProfile({ businessName: new Array(301).join("x") });
+assert.strictEqual(capped.businessName.length, 200, "long values capped");
+bp.clearBusinessProfile();
+assert.strictEqual(bp.hasBusinessProfile(), false, "clear empties profile");
+assert.strictEqual(bp.getBusinessProfile().phone, "", "clear removes values");
+assert.deepStrictEqual(bp.parseWords("a, b; c\nd"), ["a", "b", "c", "d"], "word separators");
+assert.strictEqual(bp.formatWords(["a", "b"]), "a\nb", "word formatting");
+global.localStorage = { getItem: function(){ return "{corrupt json"; }, setItem: function(){}, removeItem: function(){} };
+assert.strictEqual(bp.getBusinessProfile().businessName, "", "corrupt JSON -> defaults");
+assert.strictEqual(bp.hasBusinessProfile(), false, "corrupt JSON -> no profile");
+console.log("business-profile assertions OK");
+' && { PASS=$((PASS+1)); echo "PASS: business-profile module assertions"; } \
+  || { FAIL=$((FAIL+1)); echo "FAIL: business-profile module assertions"; }
 
 echo "---"
 echo "smoke: $PASS passed, $FAIL failed"

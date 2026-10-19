@@ -38,6 +38,45 @@ They play out as a three-act story — first you **get found**, then you **win t
 
 Honest note: these are independent products, not one platform. The three acts are a playbook, not a package — buy one, bundle a few, or take all nine where it genuinely makes sense. No forced connections.
 
+## Shared business profile
+
+Member products kept asking for the same details — business name, trade, phone, social handle, call to action, brand-safety words. So the hub defines one shared profile that every Growth Kit product reads and writes.
+
+**The convention**
+
+- **localStorage key:** `growthhub.businessProfile`
+- **Stored value:** `{ version: 1, updatedAt: "<iso-8601>", profile: { … } }`
+- **Schema v1 fields:**
+
+| Field | Type | What it's for |
+|-------|------|---------------|
+| `businessName` | string | The business's name |
+| `trade` | string | Trade / industry (e.g. "Roofing contractor") |
+| `phone` | string | Contact phone |
+| `socialHandle` | string | Social handle (e.g. `@riverbendroofing`) |
+| `cta` | string | Primary call to action (e.g. "Book a free estimate") |
+| `brandSafetyWords` | string[] | Words/phrases to avoid in generated copy |
+
+- **The code:** `js/business-profile.js` — `GrowthHubProfile` exposes `getBusinessProfile()` (stored values merged over defaults; corrupted JSON recovers to defaults, never crashes), `setBusinessProfile(patch)` (merge + sanitize + persist), `clearBusinessProfile()`, `hasBusinessProfile()`, plus `parseWords`/`formatWords` helpers. Node-safe (in-memory fallback when `localStorage` is unavailable), and the hub page's "Your business profile" section is the canonical editor.
+
+**Adopting it in a member product repo** (do this in the product repo — the hub repo only defines the convention):
+
+1. Copy `js/business-profile.js` from this repo into the product repo (it has zero dependencies).
+2. On page load, prefill your business fields from the shared profile instead of starting blank:
+   ```js
+   var p = GrowthHubProfile.getBusinessProfile();
+   // prefill your form: p.businessName, p.trade, p.phone,
+   // p.socialHandle, p.cta, p.brandSafetyWords (array)
+   ```
+3. When the user edits those fields in your product, write them back so the hub and other products see the change:
+   ```js
+   GrowthHubProfile.setBusinessProfile({ businessName: nameInput.value, phone: phoneInput.value });
+   ```
+4. Keep the field names exactly as defined here. Unknown fields are ignored on write; missing fields read back as `""` (or `[]` for `brandSafetyWords`).
+5. Respect `brandSafetyWords` wherever your product generates customer-facing copy.
+
+Honest note: `localStorage` is per origin — products hosted on different domains each keep their own copy of the profile. The convention still removes re-asking within any origin and gives every product the same schema and editor UX; when the products are served together, the profile is genuinely shared.
+
 ## Run it
 
 No build step. Just open `index.html` in a browser, or serve the folder:

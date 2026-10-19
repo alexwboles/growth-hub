@@ -178,6 +178,36 @@ var h=require("./js/data.js");
 var m=h.compareMatrix([]);
 if(m.products.length!==0||m.rows[0].values.length!==0)process.exit(1);'
 
+flow "business profile: defaults empty, key + version constants" '
+var bp=require("./js/business-profile.js");
+if(bp.STORAGE_KEY!=="growthhub.businessProfile")process.exit(1);
+if(bp.SCHEMA_VERSION!==1)process.exit(1);
+if(bp.FIELDS.length!==6)process.exit(1);
+var d=bp.defaultProfile();
+if(d.businessName!==""||d.trade!==""||d.phone!==""||d.socialHandle!==""||d.cta!=="")process.exit(1);
+if(!Array.isArray(d.brandSafetyWords)||d.brandSafetyWords.length!==0)process.exit(1);
+if(bp.hasBusinessProfile()!==false)process.exit(1);'
+
+flow "business profile: set/get roundtrip merges and sanitizes" '
+var bp=require("./js/business-profile.js");
+var s=bp.setBusinessProfile({businessName:" Riverbend ",trade:"Roofing",brandSafetyWords:"cheap, cheap, BEST"});
+if(s.businessName!=="Riverbend")process.exit(1);
+if(s.brandSafetyWords.join(",")!=="cheap,BEST")process.exit(1);
+var g=bp.getBusinessProfile();
+if(g.trade!=="Roofing"||g.phone!=="")process.exit(1);
+var s2=bp.setBusinessProfile({phone:"555-1234"});
+if(s2.businessName!=="Riverbend"||s2.phone!=="555-1234")process.exit(1);
+if(bp.hasBusinessProfile()!==true)process.exit(1);
+bp.clearBusinessProfile();
+if(bp.hasBusinessProfile()!==false)process.exit(1);
+if(bp.getBusinessProfile().phone!=="")process.exit(1);'
+
+flow "business profile: corrupt stored JSON recovers to defaults" '
+global.localStorage={getItem:function(){return "{oops";},setItem:function(){},removeItem:function(){}};
+var bp=require("./js/business-profile.js");
+if(bp.getBusinessProfile().businessName!=="")process.exit(1);
+if(bp.hasBusinessProfile()!==false)process.exit(1);'
+
 echo "---"
 echo "e2e: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

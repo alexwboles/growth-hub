@@ -4,6 +4,7 @@
    shareable links. */
 (function () {
   var hub = window.GrowthHub;
+  var profile = window.GrowthHubProfile;
 
   function el(tag, cls, text) {
     var e = document.createElement(tag);
@@ -321,6 +322,62 @@
     draw();
   }
 
+  /* --- shared business profile -------------------------------------------- */
+  function renderBusinessProfile() {
+    var form = document.getElementById("profile-form");
+    if (!form || !profile) return;
+    var textFields = ["businessName", "trade", "phone", "socialHandle", "cta"];
+
+    function renderStatus(p) {
+      var s = document.getElementById("profile-status");
+      if (!s) return;
+      if (profile.hasBusinessProfile(p)) {
+        var bits = [];
+        if (p.businessName) bits.push(p.businessName);
+        if (p.trade) bits.push(p.trade);
+        if (p.phone) bits.push(p.phone);
+        if (p.brandSafetyWords.length) bits.push(p.brandSafetyWords.length + " brand-safety word" + (p.brandSafetyWords.length === 1 ? "" : "s"));
+        s.textContent = "Saved: " + bits.join(" · ");
+      } else {
+        s.textContent = "No profile saved yet — member products will read it as soon as you save.";
+      }
+    }
+
+    function fill() {
+      var p = profile.getBusinessProfile();
+      textFields.forEach(function (k) {
+        var input = document.getElementById("pf-" + k);
+        if (input) input.value = p[k] || "";
+      });
+      var words = document.getElementById("pf-brandSafetyWords");
+      if (words) words.value = profile.formatWords(p.brandSafetyWords);
+      renderStatus(p);
+    }
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var patch = {};
+      textFields.forEach(function (k) {
+        var input = document.getElementById("pf-" + k);
+        patch[k] = input ? input.value : "";
+      });
+      var words = document.getElementById("pf-brandSafetyWords");
+      patch.brandSafetyWords = words ? words.value : "";
+      var saved = profile.setBusinessProfile(patch);
+      fill();
+      var s = document.getElementById("profile-status");
+      if (s) s.textContent = "Profile saved — Growth Kit products now read: " + (saved.businessName || saved.trade || "your details") + ".";
+    });
+
+    var clearBtn = document.getElementById("profile-clear");
+    if (clearBtn) clearBtn.addEventListener("click", function () {
+      profile.clearBusinessProfile();
+      fill();
+    });
+
+    fill();
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     renderPipeline();
     renderBilling();
@@ -335,5 +392,6 @@
     renderQuote();
     renderCompare();
     renderEstimator();
+    renderBusinessProfile();
   });
 })();
